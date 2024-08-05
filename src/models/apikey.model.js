@@ -1,7 +1,7 @@
 "use strict";
 
 // lưu trữ token từ ngày này tháng nọ
-const { models, Schema, Types } = require("mongoose");
+const { model, Schema, Types } = require("mongoose");
 
 const DOCUMENT_NAME = "Apikey";
 const COLLECTION_NAME = "Apikeys";
@@ -35,4 +35,4 @@ var apiKeySchema = new Schema(
 );
 
 //Export the model
-module.exports = mongoose.model(DOCUMENT_NAME, apiKeySchema);
+module.exports = model(DOCUMENT_NAME, apiKeySchema);
