@@ -13,6 +13,7 @@ router.get("/", function (req, res) {
 
 // check apiKey
 router.use(apiKey);
+
 // check permissions
 router.use(permission("0000"));
 

@@ -9,4 +9,7 @@ const router = express.Router();
 // signUp
 router.post("/shop/signup", asyncHandler(accessControler.signUp));
 
+// login
+router.post("/shop/login", asyncHandler(accessControler.login));
+
 module.exports = router;

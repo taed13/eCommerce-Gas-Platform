@@ -23,7 +23,7 @@ class SuccessResponse {
   }
 
   send(res, headers = {}) {
-    return res.status(this.status).json(this);
+    return res.status(this.statusCode).json(this);
   }
 }
 
@@ -54,4 +54,5 @@ class CREATED extends SuccessResponse {
 module.exports = {
   OK,
   CREATED,
+  SuccessResponse,
 };
