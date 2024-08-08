@@ -3,14 +3,79 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 
 const shopModel = require("../models/shop.model");
-const { createTokenPair } = require("../auth/authUtils");
+const { createTokenPair, verifyJWT } = require("../auth/authUtils");
 const { getInfoData } = require("../utils");
 const KeyTokenService = require("./keyToken.service");
-const { BadRequestError, AuthFailureError } = require("../core/error.response");
+const {
+  BadRequestError,
+  AuthFailureError,
+  ForbiddenError,
+} = require("../core/error.response");
 const { findByEmail } = require("./shop.service");
 const { RoleShop } = require("../configs/constants");
 
 class AccessService {
+  static handlerRefreshToken = async (refreshToken) => {
+    /*
+    check this token used
+     */
+    const foundToken = await KeyTokenService.findByRefreshTokenUsed(
+      refreshToken
+    );
+    if (foundToken) {
+      // decode who is user
+      const { userId, email } = await verifyJWT(
+        refreshToken,
+        foundToken.privateKey
+      );
+      console.log(`[P]::handlerRefreshToken::`, { userId, email });
+
+      // delete
+      await KeyTokenService.deleteKeyById(userId);
+
+      throw new ForbiddenError("Error: Token is used");
+    }
+
+    // check token
+    const holderToken = await KeyTokenService.findByRefreshToken(refreshToken);
+    if (!holderToken) {
+      throw new AuthFailureError("Error: Token is invalid");
+    }
+
+    // verify token
+    const { userId, email } = await verifyJWT(
+      refreshToken,
+      holderToken.privateKey
+    );
+
+    const foundShop = findByEmail({ email });
+    if (!foundShop) throw new AuthFailureError("Error: Shop not found");
+
+    // create private key, public key
+    const privateKey = crypto.randomBytes(64).toString("hex");
+    const publicKey = crypto.randomBytes(64).toString("hex");
+    const tokens = await createTokenPair(
+      { userId, email },
+      publicKey,
+      privateKey
+    );
+
+    // update token
+    await holderToken.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokensUsed: refreshToken,
+      },
+    });
+
+    return {
+      user: { userId, email },
+      tokens,
+    };
+  };
+
   static logout = async (keyStore) => {
     const delKey = await KeyTokenService.removeKeyById(keyStore._id);
     return delKey;
