@@ -8,23 +8,22 @@ const { getInfoData } = require("../utils");
 const KeyTokenService = require("./keyToken.service");
 const { BadRequestError, AuthFailureError } = require("../core/error.response");
 const { findByEmail } = require("./shop.service");
-
-const RoleShop = {
-  SHOP: "SHOP",
-  WRITER: "WRITER",
-  EDITOR: "EDITOR",
-  ADMIN: "ADMIN",
-};
+const { RoleShop } = require("../configs/constants");
 
 class AccessService {
-  /*
-  1 - check email in db
-  2 - check password
-  3 - create token pair
-  4 - save token pair in db
-  5 - get data return login
-  */
+  static logout = async (keyStore) => {
+    const delKey = await KeyTokenService.removeKeyById(keyStore._id);
+    return delKey;
+  };
+
   static login = async ({ email, password, refreshToken = null }) => {
+    /*
+      1 - check email in db
+      2 - check password
+      3 - create token pair
+      4 - save token pair in db
+      5 - get data return login
+    */
     const foundShop = await findByEmail({ email });
     if (!foundShop) throw new BadRequestError("Error: Shop not found");
 

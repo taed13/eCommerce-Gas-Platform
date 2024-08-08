@@ -4,6 +4,13 @@ const { CREATED, SuccessResponse } = require("../core/success.response");
 const AccessService = require("../services/access.service");
 
 class AccessController {
+  logout = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Logout OK!",
+      metadata: await AccessService.logout(req.keyStore),
+    }).send(res);
+  };
+
   login = async (req, res, next) => {
     console.log(`[P]::login::`, req.body);
     new SuccessResponse({
@@ -16,7 +23,7 @@ class AccessController {
     /*
         200 OK
         201 CREATED
-       */
+      */
     new CREATED({
       message: "Registed OK!",
       metadata: await AccessService.signUp(req.body),
