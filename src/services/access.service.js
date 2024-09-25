@@ -15,6 +15,44 @@ const { findByEmail } = require("./shop.service");
 const { RoleShop } = require("../configs/constants");
 
 class AccessService {
+  static handlerRefreshTokenV2 = async ({ refreshToken, user, keyStore }) => {
+    const { userId, email } = user;
+
+    if (keyStore.refreshTokensUsed.includes(refreshToken)) {
+      await KeyTokenService.deleteKeyById(userId);
+      throw new ForbiddenError("Error: Token is used");
+    }
+
+    if (keyStore.refreshToken !== refreshToken) {
+      throw new AuthFailureError("Error: Token is invalid");
+    }
+
+    const foundShop = findByEmail({ email });
+    if (!foundShop) throw new AuthFailureError("Error: Shop not found");
+
+    // create private key, public key
+    const tokens = await createTokenPair(
+      { userId, email },
+      keyStore.publicKey,
+      keyStore.privateKey
+    );
+
+    // update token
+    await keyStore.updateOne({
+      $set: {
+        refreshToken: tokens.refreshToken,
+      },
+      $addToSet: {
+        refreshTokensUsed: refreshToken,
+      },
+    });
+
+    return {
+      user,
+      tokens,
+    };
+  };
+
   static handlerRefreshToken = async (refreshToken) => {
     /*
     check this token used
