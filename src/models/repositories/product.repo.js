@@ -1,5 +1,6 @@
 "use strict";
 
+const { getSelectData, unSelectData } = require("../../utils");
 const {
   product,
   electronic,
@@ -87,10 +88,32 @@ const searchProductByUser = async ({ keySearch }) => {
   return results;
 };
 
+const findAllProducts = async ({ limit, sort, page, filter, select }) => {
+  const skip = (page - 1) * limit;
+  const sortBy = sort === "ctime" ? { _id: -1 } : { _id: 1 };
+  const products = await product
+    .find(filter)
+    .sort(sortBy)
+    .skip(skip)
+    .limit(limit)
+    .select(getSelectData(select))
+    .lean();
+
+  return products;
+};
+
+const findProduct = async ({ product_id, unSelect }) => {
+  return await product
+    .findOne({ _id: new Types.ObjectId(product_id) })
+    .select(unSelectData(unSelect));
+};
+
 module.exports = {
   findAllDraftsForShop,
   publishProductByShop,
   findAllPublishForShop,
   unpublishProductByShop,
   searchProductByUser,
+  findAllProducts,
+  findProduct,
 };
