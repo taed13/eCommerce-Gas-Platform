@@ -108,6 +108,25 @@ const findProduct = async ({ product_id, unSelect }) => {
     .select(unSelectData(unSelect));
 };
 
+const updateProductById = async ({
+  product_id,
+  bodyUpdate,
+  model,
+  isNew = true,
+}) => {
+  const product = await model.findOne({
+    _id: new Types.ObjectId(product_id),
+  });
+
+  if (!product) {
+    throw new ForbiddenError("Error: Product not found");
+  }
+
+  return await model.findByIdAndUpdate(product_id, bodyUpdate, {
+    new: isNew,
+  });
+};
+
 module.exports = {
   findAllDraftsForShop,
   publishProductByShop,
@@ -116,4 +135,5 @@ module.exports = {
   searchProductByUser,
   findAllProducts,
   findProduct,
+  updateProductById,
 };
