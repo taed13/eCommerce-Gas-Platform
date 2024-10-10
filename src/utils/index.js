@@ -1,54 +1,59 @@
 "use strict";
 
 const _ = require("lodash");
-const { Types } = require("mongoose");
+const {
+    Types
+} = require("mongoose");
 
-const convertToObjectIdMongodb = (id) => Types.ObjectId(id);
+const convertToObjectIdMongodb = (id) => new Types.ObjectId(id);
 
-const getInfoData = ({ fields = [], object = {} }) => {
-  return _.pick(object, fields);
+const getInfoData = ({
+    fields = [],
+    object = {}
+}) => {
+    return _.pick(object, fields);
 };
 
 const getSelectData = (select = []) => {
-  return Object.fromEntries(select.map((field) => [field, 1]));
+    return Object.fromEntries(select.map((field) => [field, 1]));
 };
 
 const unSelectData = (unSelect = []) => {
-  return Object.fromEntries(unSelect.map((field) => [field, 0]));
+    return Object.fromEntries(unSelect.map((field) => [field, 0]));
 };
 
 const removeUndefinedObject = (obj) => {
-  Object.keys(obj).forEach((key) => {
-    if (obj[key] && typeof obj[key] === "object") removeUndefined(obj[key]);
-    else if (obj[key] == null) delete obj[key];
-  });
+    Object.keys(obj).forEach((key) => {
+        if (obj[key] && typeof obj[key] === "object") removeUndefined(obj[key]);
+        else if (obj[key] == null) delete obj[key];
+    });
 
-  return obj;
+    return obj;
 };
 
 const updateNestedObjectParse = (object) => {
-  const final = {};
+    const final = {};
 
-  Object.keys(object || {}).forEach((key) => {
-    if (typeof object[key] === "object" && !Array.isArray(object[key])) {
-      const response = updateNestedObjectParse(object[key]);
+    Object.keys(object || {}).forEach((key) => {
+        if (typeof object[key] === "object" && !Array.isArray(object[key])) {
+            const response = updateNestedObjectParse(object[key]);
 
-      Object.keys(response || {}).forEach((a) => {
-        final[`${key}.${a}`] = response[a];
-      });
-    } else {
-      final[key] = object[key];
-    }
-  });
+            Object.keys(response || {}).forEach((a) => {
+                final[`${key}.${a}`] = response[a];
+            });
+        } else {
+            final[key] = object[key];
+        }
+    });
 
-  return final;
+    return final;
 };
 
 module.exports = {
-  getInfoData,
-  getSelectData,
-  unSelectData,
-  removeUndefinedObject,
-  updateNestedObjectParse,
-  convertToObjectIdMongodb,
+    getInfoData,
+    getSelectData,
+    unSelectData,
+    removeUndefinedObject,
+    updateNestedObjectParse,
+    convertToObjectIdMongodb,
 };
