@@ -1,18 +1,15 @@
 'use strict';
 
-const { cart } = require("../models/cart.model");
+const {
+    cart
+} = require("../models/cart.model");
 
 const {
     BadRequestError,
     NotFoundError
 } = require("../core/error.response");
 const {
-    findAllDiscountCodesUnSelect,
-    checkDiscountExists,
-    findAllDiscountCodesSelect,
-} = require("../models/repositories/discount.repo");
-const {
-    findAllProducts
+    getProductById
 } = require("../models/repositories/product.repo");
 const {
     convertToObjectIdMongodb
@@ -30,34 +27,59 @@ const {
 
 class CartService {
     // START REPO CART
-    static async createUserCart({ userId, product }) {
-        const query = { cart_userId: userId, cart_state: "active" },
+    static async createUserCart({
+        userId,
+        product
+    }) {
+        const query = {
+            cart_userId: userId,
+            cart_state: "active"
+        },
             updateOrInsert = {
                 $addToSet: {
                     cart_products: product
                 }
             },
-            options = { upsert: true, new: true };
+            options = {
+                upsert: true,
+                new: true
+            };
 
         return await cart.findOneAndUpdate(query, updateOrInsert, options);
     }
 
-    static async updateUserCartQuantity({ userId, product }) {
-        const { productId, quantity } = product;
-        const query = { cart_userId: userId, "cart_products.productId": productId, cart_state: "active" },
+    static async updateUserCartQuantity({
+        userId,
+        product
+    }) {
+        const {
+            productId,
+            quantity
+        } = product;
+        const query = {
+            cart_userId: userId,
+            "cart_products.productId": productId,
+            cart_state: "active"
+        },
             updateSet = {
                 $inc: {
                     "cart_products.$.quantity": quantity
                 }
             },
-            options = { upsert: true, new: true };
+            options = {
+                upsert: true,
+                new: true
+            };
 
         return await cart.findOneAndUpdate(query, updateSet, options);
     }
 
     // END REPO CART
 
-    static async addToCart({ userId, product = {} }) {
+    static async addToCart({
+        userId,
+        product = {}
+    }) {
         // Add product to cart
 
         // Check if product exists in cart
@@ -66,7 +88,10 @@ class CartService {
         });
         if (!userCart) {
             // create new cart for User
-            return await CartService.createUserCart({ userId, product });
+            return await CartService.createUserCart({
+                userId,
+                product
+            });
         }
 
         // if cart is empty
@@ -77,27 +102,90 @@ class CartService {
         }
 
         // if cart exists, and product is in cart already, update quantity
-        return await CartService.updateUserCartQuantity({ userId, product });
+        return await CartService.updateUserCartQuantity({
+            userId,
+            product
+        });
     }
 
-    static async reduceProductQuantity(payload) {
-        // Reduce product quantity by one
+    // update cart 
+    /**
+        shop_order_ids: [
+            {
+                shopId,
+                item_products: [
+                    {
+                        quantity,
+                        price,
+                        shopId,
+                        old_quantity,
+                        productId,
+                    }
+                ],
+                version,
+            }
+        ]
+     */
+    static async addToCartV2({
+        userId,
+        shop_order_ids
+    }) {
+        // Update cart
+        const {
+            productId,
+            quantity,
+            old_quantity
+        } = shop_order_ids[0]?.item_products[0];
+
+        // check product
+        console.log("productId", productId);
+        const foundProduct = await getProductById({ productId });
+
+        if (!foundProduct) {
+            throw new NotFoundError("Product not found");
+        }
+
+        // compare old_quantity with quantity
+        if (foundProduct.product_shop.toString() !== shop_order_ids[0].shopId.toString()) {
+            throw new BadRequestError("Product not found in shop");
+        }
+
+        if (quantity < 1) {
+            // delete product from cart
+        }
+
+        return await CartService.updateUserCartQuantity({
+            userId,
+            product: {
+                productId,
+                quantity: quantity - old_quantity
+            }
+        });
     }
 
-    static async increaseProductQuantity(payload) {
-        // Increase product quantity by one
+    static async deleteUserCart({ userId, productId }) {
+        const query = {
+            cart_userId: userId,
+            cart_state: "active"
+        }, updateSet = {
+            $pull: {
+                cart_products: {
+                    productId
+                }
+            }
+        };
+
+        const deletedCart = await cart.updateOne(query, updateSet);
+
+        return deletedCart;
     }
 
-    static async getCartByUser(payload) {
-        // Get cart by user
-    }
+    static async getListUserCart({ userId }) {
+        const userCart = await cart.findOne({
+            cart_userId: convertToObjectIdMongodb(userId),
+        }).lean();
 
-    static async deleteCart(payload) {
-        // Delete cart
-    }
-
-    static async deleteCartItem(payload) {
-        // Delete cart item
+        return userCart;
     }
 }
 

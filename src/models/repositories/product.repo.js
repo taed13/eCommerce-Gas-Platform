@@ -2,7 +2,8 @@
 
 const {
     getSelectData,
-    unSelectData
+    unSelectData,
+    convertToObjectIdMongodb
 } = require("../../utils");
 const {
     product,
@@ -186,6 +187,15 @@ const updateProductById = async ({
     });
 };
 
+const getProductById = async ({
+    productId
+}) => {
+    console.log("productId", productId);
+    return await product.findOne({
+        _id: convertToObjectIdMongodb(productId)
+    });
+};
+
 module.exports = {
     findAllDraftsForShop,
     publishProductByShop,
@@ -195,4 +205,5 @@ module.exports = {
     findAllProducts,
     findProduct,
     updateProductById,
+    getProductById
 };
