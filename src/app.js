@@ -19,6 +19,7 @@ app.use(
 
 // init db
 require("./dbs/init.mongodb");
+require("./dbs/init.mysql2");
 
 // init route
 app.use("/", require("./routes"));

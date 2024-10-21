@@ -15,6 +15,8 @@ const {
 const {
     getDiscountAmount
 } = require("../services/discount.service");
+const { aquireLock, releaseLock } = require("./redis.service");
+const { order } = require("../models/order.model");
 
 class CheckoutService {
     // login and without login
@@ -130,6 +132,86 @@ class CheckoutService {
             shop_order_ids_new,
             checkout_order
         }
+    }
+
+    // order
+    static async orderByUser({
+        shop_order_ids,
+        cartId,
+        userId,
+        user_address = {},
+        user_payment = {}
+    }) {
+        const { shop_order_ids_new, checkout_order } = await CheckoutService.checkoutReview({
+            cardId: cartId,
+            userId,
+            shop_order_ids: shop_order_ids_new
+        });
+
+        // check lai 1 lan nua xem co ton tai khong
+        // get new array products
+        const products = shop_order_ids_new.flatMap(item => item.item_products);
+        console.log(`PRODUCTS::`, products);
+        const acquireProduct = [];
+
+        for (let i = 0; i < products.length; i++) {
+            const { productId, quantity } = products[i];
+            const keyLock = await aquireLock(productId, quantity, cartId);
+            acquireProduct.push(keyLock ? true : false);
+
+            if (keyLock) {
+                await releaseLock(keyLock);
+            }
+        }
+
+        // check if one of the product is not available in stock
+        if (acquireProduct.includes(false)) {
+            throw new BadRequestError("Product not available in stock, please try again");
+        }
+
+        const newOrder = await order.create({
+            order_userId: userId,
+            order_checkout: checkout_order,
+            order_shipping: user_address,
+            order_payment: user_payment,
+            order_products: shop_order_ids_new
+        });
+
+        // if insert order success, remove cart
+        if (newOrder) {
+            // remove cart
+            await foundCart.remove();
+        }
+
+        return newOrder;
+    }
+
+    /*
+        1> Query Orders [Users]
+    */
+    static async getOrdersByUser(userId) {
+
+    }
+
+    /*
+        2> Query Order Using Id [Users]
+    */
+    static async getOneOrderByUser(userId, orderId) {
+
+    }
+
+    /*
+        3> Cancel Order [Users]
+    */
+    static async cancelOrderByUser(userId, orderId) {
+
+    }
+
+    /*
+        4> Update Order Status [Admin | Shop]
+    */
+    static async updateOrderStatusByShop(orderId, newStatus) {
+
     }
 }
 
